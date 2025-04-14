@@ -1,0 +1,1 @@
+This is the implementation of Advanced K-Means algorithm for solving Controller Placement Problem while optimizing request handling latency as a main metric. It is based on paper by Firas Zobary "Optimizing SDN Controller to Switch Latency for Controller Placement Problem".
