@@ -1,12 +1,19 @@
-# main.py
-import networkx as nx
-from advanced_k_means import advanced_kmeans  # Import the function
+from experiment_utils import run_controller_experiment
+from hdids import hdids_algorithm
+from advanced_k_means import advanced_kmeans
 
-# Create a sample network
-G = nx.Graph()
-edges = [('A', 'B'), ('A', 'C'), ('A', 'D'), ('B', 'C'), ('C', 'D'), ('D', 'E')]
-G.add_edges_from(edges)
+# Compare HDIDS
+run_controller_experiment(
+    algorithm=hdids_algorithm,
+    algorithm_name="HDIDS",
+    file_path="Geant2012_topology.gml",
+    max_controllers=12
+)
 
-# Call the imported function
-controllers = advanced_kmeans(G, K=3)
-print("Optimal Controllers:", controllers)
+# Compare Advanced K-Means
+run_controller_experiment(
+    algorithm=advanced_kmeans,
+    algorithm_name="Advanced K-Means",
+    file_path="Geant2012_topology.gml",
+    max_controllers=12
+)
