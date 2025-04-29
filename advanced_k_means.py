@@ -1,180 +1,139 @@
 import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+from data_utils import *
 
+def compute_shortest_path_distances(G):
+    """Precompute all-pairs shortest path distances.
 
-def compute_shortest_paths(graph):
-    """
-    Compute shortest path distances between all pairs of nodes.
-
-    Parameters:
-        graph (nx.Graph): Network topology.
-
-    Returns:
-        dict: Shortest path distances between all node pairs.
-    """
-    return dict(nx.all_pairs_shortest_path_length(graph))
-
-
-def calculate_node_degrees(graph):
-    """
-    Calculate the degree (number of connections) for each node.
-
-    Parameters:
-        graph (nx.Graph): Network topology.
+    Args:
+        G (nx.Graph): Network graph
 
     Returns:
-        dict: Node degrees.
+        dict: Dictionary of shortest path distances
     """
-    return dict(graph.degree())
+    return dict(nx.all_pairs_dijkstra_path_length(G, weight='weight'))
 
 
-def compute_average_degree(node_degrees):
-    """
-    Compute the average node degree (rounded to nearest integer).
+def select_initial_controllers(G, k, distance_matrix):
+    """Select initial controllers using Advanced K-Means initialization.
 
-    Parameters:
-        node_degrees (dict): Degrees of all nodes.
+    Args:
+        G (nx.Graph): Network graph
+        k (int): Number of controllers
+        distance_matrix (dict): Precomputed shortest path distances
 
     Returns:
-        int: Average node degree.
+        list: Initial controller nodes
     """
-    total = sum(node_degrees.values())
-    n = len(node_degrees)
-    return round(total / n)
+    nodes = list(G.nodes())
+
+    # Calculate node degrees
+    degrees = dict(G.degree())
+    max_degree = max(degrees.values())
+    candidates = [n for n in nodes if degrees[n] == max_degree]
+
+    # Select first controller
+    if len(candidates) == 1:
+        c1 = candidates[0]
+    else:
+        # Choose node with minimum total distance
+        c1 = min(candidates, key=lambda x: sum(distance_matrix[x].values()))
+
+    controllers = [c1]
+
+    # Select subsequent controllers
+    for _ in range(1, k):
+        max_dist = -1
+        next_controller = None
+
+        for node in nodes:
+            if node in controllers:
+                continue
+            min_dist = min(distance_matrix[node][c] for c in controllers)
+            if min_dist > max_dist:
+                max_dist = min_dist
+                next_controller = node
+
+        if next_controller is not None:
+            controllers.append(next_controller)
+
+    return controllers
 
 
-def select_first_center(graph, node_degrees, shortest_paths, rho):
-    """
-    Select the first controller center based on highest degree and minimum sum of shortest paths.
+def advanced_kmeans(G, k, max_iter=100):
+    """Advanced K-Means algorithm implementation.
 
-    Parameters:
-        graph (nx.Graph): Network topology.
-        node_degrees (dict): Node degrees.
-        shortest_paths (dict): Shortest path distances.
-        rho (int): Average node degree.
+    Args:
+        G (nx.Graph): Network graph
+        k (int): Number of controllers
+        max_iter (int): Maximum iterations
 
     Returns:
-        object: First controller node.
+        tuple: (controllers, clusters)
     """
-    candidates = [node for node, degree in node_degrees.items() if degree >= rho]
-    if not candidates:
-        raise ValueError("No nodes with degree >= average degree.")
+    distance_matrix = compute_shortest_path_distances(G)
+    nodes = list(G.nodes())
 
-    sum_distances = {node: sum(shortest_paths[node].values()) for node in candidates}
-    return min(candidates, key=lambda x: sum_distances[x])
+    # Initial controller selection
+    controllers = select_initial_controllers(G, k, distance_matrix)
+    prev_controllers = None
+    clusters = {c: [] for c in controllers}
+
+    iter_count = 0
+    while iter_count < max_iter and controllers != prev_controllers:
+        prev_controllers = controllers.copy()
+
+        # Assign nodes to nearest controller
+        clusters = {c: [] for c in controllers}
+        for node in nodes:
+            nearest = min(controllers, key=lambda c: distance_matrix[node][c])
+            clusters[nearest].append(node)
+
+        # Update centroids
+        new_controllers = []
+        for cluster in clusters.values():
+            min_total = float('inf')
+            best_node = cluster[0]
+
+            for node in cluster:
+                total = sum(distance_matrix[node][n] for n in cluster)
+                if total < min_total:
+                    min_total = total
+                    best_node = node
+
+            new_controllers.append(best_node)
+
+        controllers = new_controllers
+        iter_count += 1
+
+    return controllers, clusters
 
 
-def select_next_centers(graph, existing_centers, shortest_paths, rho, node_degrees, k):
-    """
-    Select subsequent controller centers as the farthest nodes from existing centers.
+def calculate_response_times(G, controllers, distance_matrix):
+    """Calculate average and maximum response times.
 
-    Parameters:
-        graph (nx.Graph): Network topology.
-        existing_centers (list): Current controller centers.
-        shortest_paths (dict): Shortest path distances.
-        rho (int): Average node degree.
-        node_degrees (dict): Node degrees.
-        k (int): Total number of controllers required.
+    Args:
+        G (nx.Graph): Network graph
+        controllers (list): Controller nodes
+        distance_matrix (dict): Precomputed distances
 
     Returns:
-        list: New controller centers.
+        tuple: (avg_delay, max_delay)
     """
-    centers = existing_centers.copy()
-    while len(centers) < k:
-        candidates = [
-            node for node in graph.nodes()
-            if node not in centers and node_degrees.get(node, 0) >= rho
-        ]
-        if not candidates:
-            candidates = [node for node in graph.nodes() if node not in centers]
+    delays = []
+    for node in G.nodes():
+        if node in controllers:
+            continue
+        min_delay = min(distance_matrix[node][c] for c in controllers)
+        delays.append(min_delay)
 
-        max_distance = -1
-        next_center = None
-        for node in candidates:
-            min_dist = min([shortest_paths[node][c] for c in centers], default=float('inf'))
-            if min_dist > max_distance or (
-                    min_dist == max_distance and node_degrees[node] > node_degrees.get(next_center, 0)):
-                max_distance = min_dist
-                next_center = node
-
-        if next_center is None:
-            break
-        centers.append(next_center)
-    return centers[len(existing_centers):]
+    return np.mean(delays), np.max(delays)
 
 
-def assign_clusters(centers, shortest_paths):
-    """
-    Assign each node to the nearest controller center.
-
-    Parameters:
-        centers (list): Controller centers.
-        shortest_paths (dict): Shortest path distances.
-
-    Returns:
-        dict: Clusters with nodes grouped under each center.
-    """
-    clusters = {center: [] for center in centers}
-    for node in shortest_paths:
-        closest = min(centers, key=lambda c: shortest_paths[node][c])
-        clusters[closest].append(node)
-    return clusters
 
 
-def update_centroids(clusters, shortest_paths, node_degrees, rho):
-    """
-    Update centroids within each cluster to minimize intra-cluster distances.
 
-    Parameters:
-        clusters (dict): Current clusters.
-        shortest_paths (dict): Shortest path distances.
-        node_degrees (dict): Node degrees.
-        rho (int): Average node degree.
-
-    Returns:
-        list: Updated controller centers.
-    """
-    new_centers = []
-    for cluster in clusters.values():
-        candidates = [n for n in cluster if node_degrees.get(n, 0) >= rho]
-        if not candidates:
-            candidates = cluster
-
-        sum_dist = {n: sum(shortest_paths[n][m] for m in cluster) for n in candidates}
-        new_center = min(sum_dist, key=lambda x: sum_dist[x])
-        new_centers.append(new_center)
-    return new_centers
-
-
-def advanced_kmeans(graph, K):
-    """
-    Advanced K-Means algorithm for SDN Controller Placement.
-
-    Parameters:
-        graph (nx.Graph): Network topology.
-        K (int): Number of controllers.
-
-    Returns:
-        list: Optimal controller positions.
-    """
-    shortest_paths = compute_shortest_paths(graph)
-    node_degrees = calculate_node_degrees(graph)
-    rho = compute_average_degree(node_degrees)
-
-    # Select initial centers
-    first_center = select_first_center(graph, node_degrees, shortest_paths, rho)
-    centers = [first_center]
-
-    if K > 1:
-        centers += select_next_centers(graph, centers, shortest_paths, rho, node_degrees, K)
-
-    prev_centers = None
-    max_iterations = 100
-    iteration = 0
-
-    while centers != prev_centers and iteration < max_iterations:
-        prev_centers = centers.copy()
-        clusters = assign_clusters(centers, shortest_paths)
-        centers = update_centroids(clusters, shortest_paths, node_degrees, rho)
-        iteration += 1
-
-    return centers
+if __name__ == "__main__":
+    # Example usage with OS3E topology
+    run_experiments("Internet2_OS3E_topology.gml", max_controllers=12)
