@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 from utils.data_utils import read_and_preprocess_gml
 from utils.metrics_utils import calculate_response_times
 
@@ -46,29 +47,36 @@ def run_controller_experiment(algorithm, algorithm_name, file_path, max_controll
         print(f"{algorithm_name} k={k}: Avg={avg:.2f}ms, Max={max_:.2f}ms")
 
     # Create plots in separate windows
-    plt.figure(1, figsize=(10, 5))
+    plt.figure(1, figsize=(12, 6))
     plt.plot(k_values, avg_times, 'b-o', label=algorithm_name)
     plt.xlabel('Number of Controllers')
     plt.ylabel('Average Response Time (ms)')
     plt.title(f'{algorithm_name} - Average Latency')
+    plt.ylim(0, 5.75)
     plt.grid(True)
     plt.legend()
-    plt.show()
 
-    plt.figure(2, figsize=(10, 5))
+    ax1 = plt.gca()
+    ax1.xaxis.set_major_locator(MultipleLocator(1))
+    ax1.yaxis.set_major_locator(MultipleLocator(0.25))
+
+    plt.savefig(f'plots/{algorithm_name}_average_latency.png', bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+    plt.figure(2, figsize=(12, 6))
     plt.plot(k_values, max_times, 'r-o', label=algorithm_name)
     plt.xlabel('Number of Controllers')
     plt.ylabel('Maximum Response Time (ms)')
     plt.title(f'{algorithm_name} - Worst-case Latency')
+    plt.ylim(0, 11)
     plt.grid(True)
     plt.legend()
-    plt.show()
 
-    # Save plots
-    plt.figure(1)
-    plt.savefig(f'plots/{algorithm_name}_average_latency.png', bbox_inches='tight')
-    plt.close()
+    ax2 = plt.gca()
+    ax2.xaxis.set_major_locator(MultipleLocator(1))
+    ax2.yaxis.set_major_locator(MultipleLocator(0.5))
 
-    plt.figure(2)
     plt.savefig(f'plots/{algorithm_name}_max_latency.png', bbox_inches='tight')
+    plt.show()
     plt.close()
