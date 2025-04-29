@@ -107,24 +107,3 @@ def advanced_kmeans(G, k, max_iter=100):
         iter_count += 1
 
     return controllers, clusters
-
-
-def calculate_response_times(G, controllers, distance_matrix):
-    """Calculate average and maximum response times.
-
-    Args:
-        G (nx.Graph): Network graph
-        controllers (list): Controller nodes
-        distance_matrix (dict): Precomputed distances
-
-    Returns:
-        tuple: (avg_delay, max_delay)
-    """
-    delays = []
-    for node in G.nodes():
-        if node in controllers:
-            continue
-        min_delay = min(distance_matrix[node][c] for c in controllers)
-        delays.append(min_delay)
-
-    return np.mean(delays), np.max(delays)

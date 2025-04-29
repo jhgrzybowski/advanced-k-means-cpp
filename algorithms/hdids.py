@@ -70,18 +70,3 @@ def hdids(G, k):
         S.remove(selected)
 
     return C
-
-
-def calculate_response_times(G, controllers):
-    """Calculate average and maximal response times."""
-    if not controllers:
-        return float('inf'), float('inf')
-
-    # Multi-source shortest paths
-    distances = nx.multi_source_dijkstra_path_length(G, controllers,
-                                                     weight='weight')
-    if not distances:
-        return float('inf'), float('inf')
-
-    min_distances = list(distances.values())
-    return sum(min_distances) / len(min_distances), max(min_distances)

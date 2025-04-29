@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
-import networkx as nx
 from utils.data_utils import read_and_preprocess_gml
+from utils.metrics_utils import calculate_response_times
 
 
 def run_controller_experiment(algorithm, algorithm_name, file_path, max_controllers=12):
@@ -37,11 +37,7 @@ def run_controller_experiment(algorithm, algorithm_name, file_path, max_controll
             continue
 
         # Calculate response times using multi-source Dijkstra
-        distances = nx.multi_source_dijkstra_path_length(G, controllers, weight='weight')
-        cluster_delays = list(distances.values())
-
-        avg = sum(cluster_delays) / len(cluster_delays) if cluster_delays else 0
-        max_ = max(cluster_delays) if cluster_delays else 0
+        avg, max_ = calculate_response_times(G, controllers)
 
         # Store results
         k_values.append(k)
