@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from functools import partial
-from data_utils import *
+from utils.data_utils import *
 
 def compute_total_distance(G, node, heuristic):
     """
@@ -26,7 +26,7 @@ def compute_total_distance(G, node, heuristic):
     return total
 
 
-def hdids_algorithm(G, k):
+def hdids(G, k):
     """
     HDIDS algorithm to select k controllers based on high degree and independent dominating set.
 
@@ -96,7 +96,7 @@ def run_experiments(file_path, max_controllers=12):
     max_times = []
 
     for k in range(1, max_controllers + 1):
-        controllers = hdids_algorithm(G, k)
+        controllers = hdids(G, k)
         print(controllers)
         if not controllers:
             print(f"No controllers placed for k={k}")

@@ -1,7 +1,6 @@
 import networkx as nx
-import matplotlib.pyplot as plt
 import numpy as np
-from data_utils import *
+from utils.data_utils import *
 
 def compute_shortest_path_distances(G):
     """Precompute all-pairs shortest path distances.
@@ -129,11 +128,3 @@ def calculate_response_times(G, controllers, distance_matrix):
         delays.append(min_delay)
 
     return np.mean(delays), np.max(delays)
-
-
-
-
-
-if __name__ == "__main__":
-    # Example usage with OS3E topology
-    run_experiments("Internet2_OS3E_topology.gml", max_controllers=12)

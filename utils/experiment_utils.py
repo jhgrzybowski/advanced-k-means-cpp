@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
-from data_utils import read_and_preprocess_gml
+from utils.data_utils import read_and_preprocess_gml
 
 
 def run_controller_experiment(algorithm, algorithm_name, file_path, max_controllers=12):
@@ -70,9 +70,9 @@ def run_controller_experiment(algorithm, algorithm_name, file_path, max_controll
 
     # Save plots
     plt.figure(1)
-    plt.savefig(f'{algorithm_name}_average_latency.png', bbox_inches='tight')
+    plt.savefig(f'plots/{algorithm_name}_average_latency.png', bbox_inches='tight')
     plt.close()
 
     plt.figure(2)
-    plt.savefig(f'{algorithm_name}_max_latency.png', bbox_inches='tight')
+    plt.savefig(f'plots/{algorithm_name}_max_latency.png', bbox_inches='tight')
     plt.close()
