@@ -75,3 +75,14 @@ def haversine_heuristic(u, v, G):
 
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return (R * c / 3e8) * 1000  # ms
+
+def compute_shortest_path_distances(G):
+    """Precompute all-pairs shortest path distances.
+
+    Args:
+        G (nx.Graph): Network graph
+
+    Returns:
+        dict: Dictionary of shortest path distances
+    """
+    return dict(nx.all_pairs_dijkstra_path_length(G, weight='weight'))

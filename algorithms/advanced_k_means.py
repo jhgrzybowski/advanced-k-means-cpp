@@ -2,18 +2,6 @@ import networkx as nx
 import numpy as np
 from utils.data_utils import *
 
-def compute_shortest_path_distances(G):
-    """Precompute all-pairs shortest path distances.
-
-    Args:
-        G (nx.Graph): Network graph
-
-    Returns:
-        dict: Dictionary of shortest path distances
-    """
-    return dict(nx.all_pairs_dijkstra_path_length(G, weight='weight'))
-
-
 def select_initial_controllers(G, k, distance_matrix):
     """Select initial controllers using Advanced K-Means initialization.
 
@@ -73,6 +61,8 @@ def advanced_kmeans(G, k, max_iter=100):
     """
     distance_matrix = compute_shortest_path_distances(G)
     nodes = list(G.nodes())
+    degrees = dict(G.degree())
+    avg_degree = round(sum(degrees.values()) / len(nodes))
 
     # Initial controller selection
     controllers = select_initial_controllers(G, k, distance_matrix)
@@ -86,16 +76,27 @@ def advanced_kmeans(G, k, max_iter=100):
         # Assign nodes to nearest controller
         clusters = {c: [] for c in controllers}
         for node in nodes:
+            if node in controllers:
+                continue
             nearest = min(controllers, key=lambda c: distance_matrix[node][c])
             clusters[nearest].append(node)
 
-        # Update centroids
+        # Update centroids with degree constraint
         new_controllers = []
         for cluster in clusters.values():
-            min_total = float('inf')
-            best_node = cluster[0]
+            if not cluster:
+                new_controllers.append(controllers[len(new_controllers)])
+                continue
 
-            for node in cluster:
+            # Filter nodes with degree >= avg_degree
+            valid_nodes = [n for n in cluster if degrees[n] >= avg_degree]
+            if not valid_nodes:
+                valid_nodes = cluster  # Fallback
+
+            min_total = float('inf')
+            best_node = valid_nodes[0]
+
+            for node in valid_nodes:
                 total = sum(distance_matrix[node][n] for n in cluster)
                 if total < min_total:
                     min_total = total
