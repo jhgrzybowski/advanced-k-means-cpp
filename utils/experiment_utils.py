@@ -85,7 +85,7 @@ def run_controller_experiment(algorithm, algorithm_name, file_path, max_controll
     plt.close()
 
 
-def run_comparison_experiment(algorithms, topology_name, file_path, max_controllers=12):
+def run_comparison_experiment(algorithms, topology_name, file_path, min_controllers, max_controllers=12):
     """
     Compare multiple algorithms and plot their results on shared figures.
 
@@ -99,7 +99,7 @@ def run_comparison_experiment(algorithms, topology_name, file_path, max_controll
 
     # Prepare results storage
     results = {}
-    k_values = list(range(1, max_controllers + 1))
+    k_values = list(range(min_controllers, max_controllers + 1))
 
     print(f"[ ----------------------- ]")
     # Run experiments for all algorithms
