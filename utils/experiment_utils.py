@@ -8,6 +8,7 @@ def run_latency_experiment(
     gml_file,
     clustering_fn,
     algorithm_name,
+    propagation_speed_km_per_ms,
     kmax
 ):
     """
@@ -29,7 +30,7 @@ def run_latency_experiment(
     os.makedirs("plots", exist_ok=True)
 
     # Load the topology
-    G = load_gml_to_delay_graph(gml_file)
+    G = load_gml_to_delay_graph(gml_file, propagation_speed_km_per_ms=propagation_speed_km_per_ms)
 
     k_values = list(range(1, kmax + 1))
     avg_times = []

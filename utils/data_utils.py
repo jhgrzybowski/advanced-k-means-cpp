@@ -1,7 +1,7 @@
 import networkx as nx
 
 
-def load_gml_to_delay_graph(gml_file_path, propagation_speed_km_per_ms=200000):
+def load_gml_to_delay_graph(gml_file_path, propagation_speed_km_per_ms=200):
     """
     Loads a GML file representing a network topology and converts it to an undirected graph G,
     where the edges are weighted by propagation delays in milliseconds (ms).
