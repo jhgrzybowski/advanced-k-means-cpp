@@ -1,5 +1,5 @@
 graph [
-  comment "OS3E Network Graph generated 2025-06-07"
+  comment "OS3E Network Graph"
   version 2
   directed 0
   nodeCount 34

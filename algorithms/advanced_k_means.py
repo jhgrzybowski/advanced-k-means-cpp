@@ -1,5 +1,4 @@
 import networkx as nx
-import numpy as np
 from utils.data_utils import *
 
 def _best_center_candidate(eligible_nodes, degrees, path_lengths):
@@ -71,7 +70,9 @@ def select_first_initial_center(G):
     degrees = dict(G.degree())
 
     # Calculate average node degree in the network
-    avg_degree = int(round(np.mean(list(degrees.values()))))
+    total_degree = sum(degrees.values())
+    num_nodes = len(degrees)
+    avg_degree = int(round(total_degree / num_nodes)) if num_nodes else 0
 
     # Filter nodes with degree >= average degree
     eligible_nodes = _eligible_center_nodes(degrees, avg_degree)
@@ -98,7 +99,7 @@ def advanced_k_means(G, k):
         clusters (dict): Mapping from controller node id to set of assigned node ids.
     """
     nodes = list(G.nodes())
-    n = len(nodes)
+
     # Step 1: Select the first center
     centers = [select_first_initial_center(G)]
 

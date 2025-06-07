@@ -13,7 +13,7 @@ if __name__ == "__main__":
     }
 
     run_latency_experiment(gml_file=topology_files["os3e"], clustering_fn=advanced_k_means,
-                           algorithm_name="AdvancedKMeans_OS3E", propagation_speed_km_per_ms=200, kmax=12)
+                           algorithm_name="AdvancedKMeans_OS3E", propagation_speed_km_per_ms=204, kmax=10)
 
     # Załaduj topologię
 

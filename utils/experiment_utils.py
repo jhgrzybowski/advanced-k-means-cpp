@@ -37,6 +37,7 @@ def run_latency_experiment(
     max_times = []
 
     for k in k_values:
+
         controllers, clusters = clustering_fn(G, k)
 
         # Log to console
@@ -52,12 +53,20 @@ def run_latency_experiment(
         for ctrl in controllers:
             for node in clusters[ctrl]:
                 # If node is the controller, delay = 0
-                if node != ctrl:
-                    # Dijkstra shortest path length in ms (weight='delay_ms')
+                if node == ctrl:
+                    node_to_ctrl_delay.append(0.0)
+                else:
+                    # Dijkstra shortest path length in ms (weight='delay_ms') - L(Cj)
                     delay = nx.shortest_path_length(G, source=node, target=ctrl, weight='delay_ms')
                     node_to_ctrl_delay.append(delay)
-        avg_latency = np.mean(node_to_ctrl_delay)
-        max_latency = np.max(node_to_ctrl_delay)
+
+        # ∑_(j in C) L(Cj)
+        total_delay = sum(node_to_ctrl_delay)
+
+        num_nodes = G.number_of_nodes()
+
+        avg_latency = total_delay / num_nodes if num_nodes else 0.0
+        max_latency = max(node_to_ctrl_delay) if node_to_ctrl_delay else 0.0
 
         print(f'for k={k}, avg_latency={avg_latency}, max_latency={max_latency}')
 
@@ -72,7 +81,7 @@ def run_latency_experiment(
     plt.xlabel('Number of Controllers')
     plt.ylabel('Average Response Time (ms)')
     plt.title(f'{algorithm_name} - Average Latency')
-    plt.ylim(0, 5.75)
+    plt.ylim(0, 8)
     plt.grid(True)
     plt.legend()
     ax1 = plt.gca()
@@ -88,7 +97,7 @@ def run_latency_experiment(
     plt.xlabel('Number of Controllers')
     plt.ylabel('Maximum Response Time (ms)')
     plt.title(f'{algorithm_name} - Worst-case Latency')
-    plt.ylim(0, 11)
+    plt.ylim(0, 15.5)
     plt.grid(True)
     plt.legend()
     ax2 = plt.gca()
