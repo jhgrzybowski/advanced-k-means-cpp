@@ -83,8 +83,6 @@ def select_first_initial_center(G):
     return _best_center_candidate(eligible_nodes, degrees, path_lengths)
 
 
-
-
 def advanced_k_means(G, k):
     """
     Performs the Advanced K-Means clustering for SDN controller placement.
@@ -119,7 +117,7 @@ def advanced_k_means(G, k):
                 max_min_dist = min_dist
         centers.append(farthest_node)
 
-    # Step 3: Assign nodes to closest center
+    # Step 3: Assign nodes to the closest center
     changed = True
     while changed:
         clusters = {c: set() for c in centers}

@@ -57,6 +57,9 @@ def run_latency_experiment(
                     node_to_ctrl_delay.append(delay)
         avg_latency = np.mean(node_to_ctrl_delay)
         max_latency = np.max(node_to_ctrl_delay)
+
+        print(f'for k={k}, avg_latency={avg_latency}, max_latency={max_latency}')
+
         avg_times.append(avg_latency)
         max_times.append(max_latency)
 
