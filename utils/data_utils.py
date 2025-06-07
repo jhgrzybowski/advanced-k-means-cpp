@@ -1,45 +1,40 @@
-import math
 import networkx as nx
 
-def read_and_preprocess_gml(file_path):
-    """
-    Reads a .gml file and preprocesses the graph by calculating edge weights based on propagation delay.
 
-    Parameters:
-        file_path (str): Path to the .gml file.
+def load_gml_to_delay_graph(gml_file_path, propagation_speed_km_per_ms=0.2):
+    """
+    Loads a GML file representing a network topology and converts it to an undirected graph G,
+    where the edges are weighted by propagation delays in milliseconds (ms).
+    The propagation delay for each edge is calculated as: delay_ms = distance_km / propagation_speed_km_per_ms.
+
+    Args:
+        gml_file_path (str): Path to the GML file.
+        propagation_speed_km_per_ms (float): Speed of signal propagation in km/ms (default: 0.2 km/ms, which is ~200,000 km/s).
+            Typical values:
+                - 0.2 km/ms: optical fiber (~200,000 km/s, 2/3 speed of light)
+                - 0.3 km/ms: vacuum (speed of light)
 
     Returns:
-        nx.Graph: Preprocessed undirected graph with edge weights as propagation delay (ms).
+        G (nx.Graph): An undirected NetworkX graph where edges are weighted with propagation delays (ms).
+            Each node retains its GML attributes (such as 'label', 'lon', 'lat', etc.).
+            Each edge has an attribute 'delay_ms' (propagation delay in ms).
     """
-    G = nx.read_gml(file_path)
-    G = G.to_undirected()
+    # Load the graph from GML file
+    G = nx.read_gml(gml_file_path, label='id')
 
-    for u, v in G.edges():
-        u_data = G.nodes[u]
-        v_data = G.nodes[v]
+    # Convert to undirected graph if necessary
+    if not isinstance(G, nx.Graph):
+        G = nx.Graph(G)
 
-        # Extract coordinates using 'lon'/'lat' keys
-        lon1 = u_data.get('lon', 0.0)
-        lat1 = u_data.get('lat', 0.0)
-        lon2 = v_data.get('lon', 0.0)
-        lat2 = v_data.get('lat', 0.0)
-
-        # Haversine formula
-        R = 6371000  # Earth radius in meters
-        phi1 = math.radians(lat1)
-        phi2 = math.radians(lat2)
-        delta_phi = math.radians(lat2 - lat1)
-        delta_lambda = math.radians(lon2 - lon1)
-
-        a = (math.sin(delta_phi / 2.0) ** 2 +
-             math.cos(phi1) * math.cos(phi2) *
-             math.sin(delta_lambda / 2.0) ** 2)
-
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        distance = R * c
-
-        # Propagation delay in milliseconds
-        G[u][v]['weight'] = (distance / 3e8) * 1000  # Speed of light
+    # For each edge, compute propagation delay (in ms) based on 'dist' (distance in km)
+    for u, v, data in G.edges(data=True):
+        if 'dist' not in data:
+            raise ValueError(f"Edge ({u}, {v}) does not have a 'dist' attribute in the GML file.")
+        distance_km = float(data['dist'])
+        delay_ms = distance_km / propagation_speed_km_per_ms
+        data['delay_ms'] = delay_ms
+        # Optionally, for clarity, overwrite 'weight' with 'delay_ms'
+        data['weight'] = delay_ms
 
     return G
 
