@@ -18,10 +18,9 @@ if __name__ == "__main__":
 
     if __name__ == "__main__":
         gml_file = topology_files['os3e']
-        propagation_speed_km_per_ms = 204  # przykładowa wartość
+        propagation_speed_km_per_ms = 204
         kmax = 10
 
-        # Przekazujesz słownik nazw do funkcji
         clustering_fns = {
             "advanced_k_means": advanced_k_means,
             "enhanced_k_means": enhanced_k_means

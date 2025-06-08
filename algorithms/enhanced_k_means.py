@@ -83,7 +83,6 @@ def _compute_path_lengths(G):
     return dict(nx.all_pairs_dijkstra_path_length(G, weight='delay_ms'))
 
 def select_first_initial_center(
-    G,
     degrees,
     betweenness,
     closeness,
@@ -98,7 +97,6 @@ def select_first_initial_center(
     Only nodes with degree >= average degree are considered.
 
     Args:
-        G (nx.Graph): The input undirected graph with delay-weighted edges.
         degrees (dict): Node degrees {node: degree}.
         betweenness (dict): Betweenness centrality {node: value}.
         closeness (dict): Closeness centrality {node: value}.
@@ -156,18 +154,24 @@ def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness):
         w_closeness=w_closeness
     )]
 
-    # Step 2: Select next centers (farthest from current centers)
+    # Step 2: Select next centers (for better overall latency)
+    import random
+
     while len(centers) < k:
-        farthest_node = None
-        max_min_dist = -1
+        # For each node, compute squared min distance to any center
+        dists = []
         for node in nodes:
             if node in centers:
-                continue
-            min_dist = min(path_lengths[node][c] for c in centers)
-            if min_dist > max_min_dist:
-                farthest_node = node
-                max_min_dist = min_dist
-        centers.append(farthest_node)
+                dists.append(0)
+            else:
+                min_dist = min(path_lengths[node][c] for c in centers)
+                dists.append(min_dist ** 2)
+        total = sum(dists)
+        probs = [d / total if total > 0 else 0 for d in dists]
+        # Randomly pick the next center
+        next_center = random.choices(nodes, weights=probs, k=1)[0]
+        if next_center not in centers:
+            centers.append(next_center)
 
     # Step 3: Assign nodes to the closest center
     changed = True
