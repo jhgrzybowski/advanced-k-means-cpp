@@ -1,7 +1,5 @@
+from utils.experiment_utils import run_latency_experiment_compare
 
-
-from utils.experiment_utils import run_latency_experiment
-from algorithms.advanced_k_means import advanced_k_means
 
 if __name__ == "__main__":
     # List of available GML topology files in the project
@@ -12,30 +10,36 @@ if __name__ == "__main__":
         "geant2012": "topologies/Geant2012_topology.gml"
     }
 
-    run_latency_experiment(gml_file=topology_files["os3e"], clustering_fn=advanced_k_means,
-                           algorithm_name="AdvancedKMeans_OS3E", propagation_speed_km_per_ms=204, kmax=10)
+    # run_latency_experiment(gml_file=topology_files["os3e"], clustering_fn=advanced_k_means,
+    #                        algorithm_name="AdvancedKMeans_OS3E", propagation_speed_km_per_ms=204, kmax=10)
 
-    # Załaduj topologię
+    from algorithms.advanced_k_means import advanced_k_means
+    from algorithms.enhanced_k_means import enhanced_k_means
 
+    if __name__ == "__main__":
+        gml_file = topology_files['os3e']
+        propagation_speed_km_per_ms = 204  # przykładowa wartość
+        kmax = 10
 
-    # from utils.data_utils import load_gml_to_delay_graph
-    # import networkx as nx
-    #
-    # G = load_gml_to_delay_graph("topologies/PionierL3_topology.gml")
-    #
-    # # Wybierz przykładowe pary (tu: ID węzłów, zmień na te, które istnieją w grafie)
-    # pairs = [
-    #     (0, 34),  # Warszawa - Poznań
-    #     (30, 36),  # Gdańsk - Toruń
-    #     (8, 19)  # Rzeszów - Zamość
-    # ]
-    #
-    # for u, v in pairs:
-    #     # Najkrótsza ścieżka wg opóźnienia propagacyjnego (w ms)
-    #     try:
-    #         delay = nx.shortest_path_length(G, source=u, target=v, weight='delay_ms')
-    #         print(
-    #             f"Propagation delay between {G.nodes[u]['label']} ({u}) and {G.nodes[v]['label']} ({v}): {delay:.4f} ms")
-    #     except Exception as e:
-    #         print(f"Cannot compute delay between {u} and {v}: {e}")
+        # Przekazujesz słownik nazw do funkcji
+        clustering_fns = {
+            "advanced_k_means": advanced_k_means,
+            "enhanced_k_means": enhanced_k_means
+        }
+
+        # Argumenty wag dla enhanced_k_means:
+        enhanced_kwargs = dict(
+            w_degree=0,
+            w_betweenness=10,
+            w_closeness=4
+        )
+
+        run_latency_experiment_compare(
+            gml_file,
+            clustering_fns,
+            propagation_speed_km_per_ms,
+            kmax,
+            enhanced_k_means_kwargs=enhanced_kwargs
+        )
+
 
