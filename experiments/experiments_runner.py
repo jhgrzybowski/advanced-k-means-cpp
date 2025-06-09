@@ -1,12 +1,12 @@
+import os
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
 plt.rcParams['font.family'] = 'Arial'
 
 from utils.data_utils import load_gml_to_delay_graph
 from utils.experiment_utils import compute_latencies_for_experiment
-from utils.plot_utils import plot_latency_results
+from utils.plot_utils import plot_latency_comparison, plot_enhanced_kmeans_experiment
 
 def run_latency_experiment_compare(
     gml_file,
@@ -30,7 +30,7 @@ def run_latency_experiment_compare(
     Saves:
         Comparison plots for average and max latency.
     """
-    import os
+
     os.makedirs("plots", exist_ok=True)
 
     G = load_gml_to_delay_graph(gml_file, propagation_speed_km_per_ms=propagation_speed_km_per_ms)
@@ -85,14 +85,13 @@ def run_latency_experiment_compare(
         avg_latencies[name] = avg_times
         max_latencies[name] = max_times
 
-    plot_latency_results(
+    plot_latency_comparison(
         k_values,
         avg_latencies,
         max_latencies,
         clustering_fns,
         experiment_name="Advanced K-Means vs Enhanced K-Means++",
-        topology_name="Internet2 OS3E",
-        output_dir="plots"
+        topology_name="Internet2 OS3E"
     )
 
 def run_enhanced_kmeans_experiment(
@@ -126,7 +125,7 @@ def run_enhanced_kmeans_experiment(
 
     # Load topology
     G = load_gml_to_delay_graph(gml_file, propagation_speed_km_per_ms)
-
+    k_values = list(range(1, kmax + 1))
 
     # Final delays list after experiments of Advanced K-Means
     avg_delays_advanced = []
@@ -174,54 +173,16 @@ def run_enhanced_kmeans_experiment(
         max_delays_enhanced.append(np.mean(enhanced_max))
         std_max_delays_enhanced.append(np.std(enhanced_max))
 
-
-    ks = np.arange(1, kmax + 1)
-
-    # --- Plotting: Average Delay ---
-    plt.figure(figsize=(8,5))
-    plt.plot(ks, avg_delays_advanced, marker='o', label='Advanced K-Means', color="#003366")
-    plt.errorbar(
-        ks,
+    plot_enhanced_kmeans_experiment(
+        k_values,
+        avg_delays_advanced,
+        max_delays_advanced,
         avg_delays_enhanced,
-        yerr=std_avg_delays_enhanced,
-        fmt='s',
-        color="#C8102E",
-        capsize=4,
-        label='Enhanced K-Means++ (mean ± std)'
-    )
-    plt.xlabel("Number of controllers (K)")
-    plt.ylabel("Average delay [ms]")
-    plt.title("Average Propagation Delay (Varying Controllers Number)")
-    plt.legend()
-    plt.grid(True, linestyle=':')
-    ax1 = plt.gca()
-    ax1.xaxis.set_major_locator(MultipleLocator(1))
-    ax1.yaxis.set_major_locator(MultipleLocator(0.25))
-    plt.tight_layout()
-
-    plt.savefig(f"plots/avg_delay_comparison.png", dpi=250)
-    plt.show()
-
-    # --- Plotting: Maximum Delay ---
-    plt.figure(figsize=(7,5))
-    plt.plot(ks, max_delays_advanced, marker='o', label='Advanced K-Means (deterministic)')
-    plt.errorbar(
-        ks,
+        std_avg_delays_enhanced,
         max_delays_enhanced,
-        yerr=std_max_delays_enhanced,
-        fmt='s',
-        capsize=4,
-        label='Enhanced K-Means++ (mean ± std)'
+        std_max_delays_enhanced,
+        experiment_name="Advanced K-Means vs Enhanced K-Means++ (with std dev)",
+        topology_name="Internet2 OS3E"
     )
-    plt.xlabel("Number of controllers (k)")
-    plt.ylabel("Maximum delay [ms]")
-    plt.title("Maximum Delay vs Number of Controllers")
-    plt.legend()
-    plt.grid(True, linestyle=':')
-    plt.tight_layout()
-    # plt.show()
-    plt.savefig(f"plots/max_delay_comparison.png", dpi=180)
-
-    print("Experiment complete. Plots saved to 'plots/'.")
 
 
