@@ -52,7 +52,7 @@ def best_weighted_initial_center(
             best_sum = sum_dist
     return best_node
 
-def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness, rng):
+def enhanced_k_means(G, k, rng, w_degree, w_betweenness, w_closeness):
     """
     Enhanced K-Means clustering for SDN controller placement with degree, betweenness, and closeness weight system.
     It partitions the network into k clusters and selects k controller nodes to minimize average propagation delay.
@@ -61,10 +61,10 @@ def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness, rng):
     Args:
         G (nx.Graph): The input undirected graph with delay-weighted edges.
         k (int): Number of controllers/clusters.
+        rng (random.Random(seed)): Random number generator.
         w_degree (float): Weight for degree centrality (default: 1.0).
         w_betweenness (float): Weight for betweenness centrality (default: 1.0).
         w_closeness (float): Weight for closeness centrality (default: 1.0).
-        rng (random.Random(seed)): Random number generator.
 
     Returns:
         controllers (list): List of selected controller node ids.
@@ -101,7 +101,6 @@ def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness, rng):
         next_center = rng.choices(nodes, weights=probs, k=1)[0]
         if next_center not in centers:
             centers.append(next_center)
-    print(f'K={k} -- Controllers located @ {centers}')
 
     # Step 3: Assign nodes to the closest center
     changed = True
