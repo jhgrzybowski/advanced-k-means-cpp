@@ -1,52 +1,49 @@
 import networkx as nx
 from utils.data_utils import *
+from algorithms.helpers import _compute_path_lengths, _prepare_graph_features, _prepare_weight_normalization
 
-def _best_center_candidate(
-    eligible_nodes,
-    degrees,
+
+def best_weighted_initial_center(
+    G,
     betweenness,
     closeness,
-    path_lengths,
     w_degree,
     w_betweenness,
-    w_closeness
+    w_closeness,
 ):
     """
-    Helper function to select the best center candidate among eligible nodes using weighted sum of degree, betweenness, and closeness centrality.
-    All metrics are normalized before weighting.
+    Selects the first initial cluster center for the Enhanced K-Means algorithm using weighted sum of:
+    highest degree, betweenness, and closeness centrality. All metrics are normalized before weighting.
+    Only nodes with degree >= average degree are considered.
 
     Args:
-        eligible_nodes (list): List of eligible node ids.
-        degrees (dict): Node degrees {node: degree}.
+        G (nx.Graph): The input undirected graph with delay-weighted edges.
         betweenness (dict): Betweenness centrality {node: value}.
         closeness (dict): Closeness centrality {node: value}.
-        path_lengths (dict): Shortest path delays {node: {target: delay}}.
-        w_degree (float): Weight for degree centrality (default: 1.0).
-        w_betweenness (float): Weight for betweenness centrality (default: 1.0).
-        w_closeness (float): Weight for closeness centrality (default: 1.0).
+        w_degree (float): Weight for degree centrality.
+        w_betweenness (float): Weight for betweenness centrality.
+        w_closeness (float): Weight for closeness centrality.
 
     Returns:
         best_node (int): Node id of the selected best center.
     """
-    deg_values = [degrees[n] for n in eligible_nodes]
-    betw_values = [betweenness[n] for n in eligible_nodes]
-    close_values = [closeness[n] for n in eligible_nodes]
 
-    def norm(val, vmin, vmax):
-        return 0 if vmax == vmin else (val - vmin) / (vmax - vmin)
+    # Select nodes that can be candidates for initial center
+    eligible_nodes, degrees = _prepare_graph_features(G)
 
-    deg_min, deg_max = min(deg_values), max(deg_values)
-    betw_min, betw_max = min(betw_values), max(betw_values)
-    close_min, close_max = min(close_values), max(close_values)
+    # Compute all shortest paths in the network
+    path_lengths = _compute_path_lengths(G)
 
     best_node = None
     best_score = -float('inf')
     best_sum = float('inf')
 
+    # For each egligible node calculate the score for being the best candidate for initial center
     for n in eligible_nodes:
-        d_norm = norm(degrees[n], deg_min, deg_max)
-        b_norm = norm(betweenness[n], betw_min, betw_max)
-        c_norm = norm(closeness[n], close_min, close_max)
+
+        d_norm, b_norm, c_norm = _prepare_weight_normalization(G,n,betweenness, closeness)
+
+        # Score is calculated based on weighted metrics
         score = w_degree * d_norm + w_betweenness * b_norm + w_closeness * c_norm
         sum_dist = sum(path_lengths[n].values())
         if (score > best_score) or (score == best_score and sum_dist < best_sum):
@@ -55,75 +52,7 @@ def _best_center_candidate(
             best_sum = sum_dist
     return best_node
 
-def _eligible_center_nodes(degrees, avg_degree):
-    """
-    Helper function to filter eligible nodes for controller placement.
-    Only nodes with degree >= average degree are considered.
-
-    Args:
-        degrees (dict): Node degrees {node: degree}.
-        avg_degree (int): Average node degree (rounded).
-    Returns:
-        eligible_nodes (list): List of eligible node ids.
-    """
-    eligible_nodes = [n for n, d in degrees.items() if d >= avg_degree]
-    if not eligible_nodes:
-        raise ValueError("No eligible nodes found with degree >= average degree.")
-    return eligible_nodes
-
-def _compute_path_lengths(G):
-    """
-    Returns paths computed for the given network using Dijkstra's algorithm.
-    Args:
-        G (nx.Graph): Input graph.
-
-    Returns:
-        path_lengths (dict): Shortest delays path.
-    """
-    return dict(nx.all_pairs_dijkstra_path_length(G, weight='delay_ms'))
-
-def select_first_initial_center(
-    degrees,
-    betweenness,
-    closeness,
-    path_lengths,
-    w_degree,
-    w_betweenness,
-    w_closeness
-):
-    """
-    Selects the first initial cluster center (controller location) for the Enhanced K-Means algorithm
-    based on weighted sum of degree, betweenness and closeness centrality (with normalization).
-    Only nodes with degree >= average degree are considered.
-
-    Args:
-        degrees (dict): Node degrees {node: degree}.
-        betweenness (dict): Betweenness centrality {node: value}.
-        closeness (dict): Closeness centrality {node: value}.
-        path_lengths (dict): Shortest path delays {node: {target: delay}}.
-        w_degree (float): Weight for degree centrality (default: 1.0).
-        w_betweenness (float): Weight for betweenness centrality (default: 1.0).
-        w_closeness (float): Weight for closeness centrality (default: 1.0).
-
-    Returns:
-        first_center (int): Node id of the selected initial center.
-    """
-    total_degree = sum(degrees.values())
-    num_nodes = len(degrees)
-    avg_degree = int(round(total_degree / num_nodes)) if num_nodes else 0
-    eligible_nodes = _eligible_center_nodes(degrees, avg_degree)
-    return _best_center_candidate(
-        eligible_nodes,
-        degrees,
-        betweenness,
-        closeness,
-        path_lengths,
-        w_degree=w_degree,
-        w_betweenness=w_betweenness,
-        w_closeness=w_closeness
-    )
-
-def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness):
+def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness, rng):
     """
     Enhanced K-Means clustering for SDN controller placement with degree, betweenness, and closeness weight system.
     It partitions the network into k clusters and selects k controller nodes to minimize average propagation delay.
@@ -135,6 +64,7 @@ def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness):
         w_degree (float): Weight for degree centrality (default: 1.0).
         w_betweenness (float): Weight for betweenness centrality (default: 1.0).
         w_closeness (float): Weight for closeness centrality (default: 1.0).
+        rng (random.Random(seed)): Random number generator.
 
     Returns:
         controllers (list): List of selected controller node ids.
@@ -142,21 +72,20 @@ def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness):
     """
     nodes = list(G.nodes())
     path_lengths = _compute_path_lengths(G)
-    degrees = dict(G.degree())
+
+
     betweenness = nx.betweenness_centrality(G, normalized=True, weight='delay_ms')
     closeness = nx.closeness_centrality(G, distance='delay_ms')
 
     # Step 1: Select the first center using weighted centrality
-    centers = [select_first_initial_center(
-        G, degrees, betweenness, closeness, path_lengths,
-        w_degree=w_degree,
-        w_betweenness=w_betweenness,
-        w_closeness=w_closeness
+    centers = [best_weighted_initial_center(
+        G, betweenness, closeness,
+        w_degree,
+        w_betweenness,
+        w_closeness
     )]
 
-    # Step 2: Select next centers (for better overall latency)
-    import random
-
+    # Step 2: Select next centers based on k-means++
     while len(centers) < k:
         # For each node, compute squared min distance to any center
         dists = []
@@ -169,9 +98,10 @@ def enhanced_k_means(G, k, w_degree, w_betweenness, w_closeness):
         total = sum(dists)
         probs = [d / total if total > 0 else 0 for d in dists]
         # Randomly pick the next center
-        next_center = random.choices(nodes, weights=probs, k=1)[0]
+        next_center = rng.choices(nodes, weights=probs, k=1)[0]
         if next_center not in centers:
             centers.append(next_center)
+    print(f'K={k} -- Controllers located @ {centers}')
 
     # Step 3: Assign nodes to the closest center
     changed = True

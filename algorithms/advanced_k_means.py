@@ -1,20 +1,25 @@
 import networkx as nx
-from utils.data_utils import *
+from algorithms.helpers import _compute_path_lengths, _prepare_graph_features
 
-def _best_center_candidate(eligible_nodes, degrees, path_lengths):
+def best_initial_center(G):
     """
-    Helper function to select the best center candidate among eligible nodes.
+    Selects the first initial cluster center for the Advanced K-Means algorithm.
     The node with the highest degree is preferred; in case of a tie, the one with the minimal sum of shortest path delays is chosen.
+    Only nodes with degree >= average degree are considered.
 
     Args:
-        G (nx.Graph): Input graph.
-        eligible_nodes (list): List of eligible node ids.
-        degrees (dict): Node degrees {node: degree}.
-        path_lengths (dict): Shortest path delays {node: {target: delay}}.
+        G (nx.Graph): The input undirected graph with delay-weighted edges.
 
     Returns:
         best_node (int): Node id of the selected best center.
     """
+
+    # Select nodes that can be candidates for initial center
+    eligible_nodes, degrees = _prepare_graph_features(G)
+
+    # Compute all shortest paths in the network
+    path_lengths = _compute_path_lengths(G)
+
     best_node = None
     best_degree = -1
     best_sum = float('inf')
@@ -27,68 +32,11 @@ def _best_center_candidate(eligible_nodes, degrees, path_lengths):
             best_sum = sum_dist
     return best_node
 
-def _eligible_center_nodes(degrees, avg_degree):
-    """
-    Helper function to filter eligible nodes for controller placement.
-    Only nodes with degree >= average degree are considered.
-
-    Args:
-        degrees (dict): Node degrees {node: degree}.
-        avg_degree (int): Average node degree (rounded).
-    Returns:
-        eligible_nodes (list): List of eligible node ids.
-    """
-    eligible_nodes = [n for n, d in degrees.items() if d >= avg_degree]
-    if not eligible_nodes:
-        raise ValueError("No eligible nodes found with degree >= average degree.")
-    return eligible_nodes
-
-
-def _compute_path_lengths(G):
-    """
-    Returns paths computed for the given network using Dijkstra's algorithm.
-    Args:
-        G (nx.Graph): Input graph.
-
-    Returns:
-        path_lengths (dict): Shortest delays path.
-    """
-    return dict(nx.all_pairs_dijkstra_path_length(G, weight='delay_ms'))
-
-def select_first_initial_center(G):
-    """
-    Selects the first initial cluster center (controller location) for the Advanced K-Means algorithm
-    based on the highest node degree and, in case of a tie, by minimum sum of shortest path distances to all other nodes.
-    Only nodes with degree >= average degree are considered.
-
-    Args:
-        G (nx.Graph): The input undirected graph with delay-weighted edges.
-
-    Returns:
-        first_center (int): Node id of the selected initial center.
-    """
-    degrees = dict(G.degree())
-
-    # Calculate average node degree in the network
-    total_degree = sum(degrees.values())
-    num_nodes = len(degrees)
-    avg_degree = int(round(total_degree / num_nodes)) if num_nodes else 0
-
-    # Filter nodes with degree >= average degree
-    eligible_nodes = _eligible_center_nodes(degrees, avg_degree)
-
-    # Compute the shortest delay paths for the network
-    path_lengths = _compute_path_lengths(G)
-
-    # Return initial center that
-    return _best_center_candidate(eligible_nodes, degrees, path_lengths)
-
-
 def advanced_k_means(G, k):
     """
     Performs the Advanced K-Means clustering for SDN controller placement.
     It partitions the network into k clusters and selects k controller nodes to minimize average propagation delay.
-    The initial controller is selected using select_first_initial_center().
+    The initial controller is selected using best_initial_center().
 
     Args:
         G (nx.Graph): The input undirected graph with delay-weighted edges.
@@ -101,7 +49,7 @@ def advanced_k_means(G, k):
     nodes = list(G.nodes())
 
     # Step 1: Select the first center
-    centers = [select_first_initial_center(G)]
+    centers = [best_initial_center(G)]
 
     # Step 2: Select next centers (farthest from current centers)
     path_lengths = _compute_path_lengths(G)
