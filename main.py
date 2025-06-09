@@ -1,38 +1,74 @@
-from utils.experiment_utils import *
-from algorithms.hdids import hdids
-from algorithms.advanced_k_means import advanced_kmeans
-from algorithms.enhanced_k_means import enhanced_kmeans
-
-# # Compare HDIDS
-# run_controller_experiment(
-#     algorithm=hdids,
-#     algorithm_name="HDIDS",
-#     file_path="topologies/Internet2_OS3E_topology.gml",
-#     max_controllers=12
-# )
-#
-# # Compare Advanced K-Means
-# run_controller_experiment(
-#     algorithm=advanced_kmeans,
-#     algorithm_name="Advanced K-Means",
-#     file_path="topologies/Internet2_OS3E_topology.gml",
-#     max_controllers=12
-# )
-
-algorithms_to_compare = [
-    # (hdids, "HDIDS"),
-    (advanced_kmeans, "Advanced K-Means"),
-    (enhanced_kmeans, "Enhanced K-Means"),
-]
-
-# Run comparison experiment
-run_comparison_experiment(
-    algorithms=algorithms_to_compare,
-    topology_name="Internet2 OS3E",
-    file_path="topologies/Internet2_OS3E_topology.gml",
-    min_controllers=1,
-    max_controllers=12
+from utils.results_utils import save_results_to_json
+from experiments.experiments_runner import run_enhanced_kmeans_experiment
+from experiments.experiments_runner import run_latency_experiment_compare
 
 
+if __name__ == "__main__":
+    # List of available GML topology files in the project
+    topology_files = {
+        "pionier": "topologies/PionierL3_topology.gml",
+        "atmnet": "topologies/Atmnet_topology.gml",
+        "os3e": "topologies/Internet2_OS3E_topology.gml",
+        "geant2012": "topologies/Geant2012_topology.gml"
+    }
 
-)
+    # run_latency_experiment(gml_file=topology_files["os3e"], clustering_fn=advanced_k_means,
+    #                        algorithm_name="AdvancedKMeans_OS3E", propagation_speed_km_per_ms=204, kmax=10)
+
+    from algorithms.advanced_k_means import advanced_k_means
+    from algorithms.enhanced_k_means import enhanced_k_means
+
+    if __name__ == "__main__":
+
+        # Experiments paremeters
+        gml_file = topology_files['os3e']
+        propagation_speed_km_per_ms = 204
+        kmax = 10
+        seed = 42
+        enhanced_algorithm_runs = 10
+        k_value = range(3,7)
+
+        clustering_fns = {
+            "advanced_k_means": advanced_k_means,
+            "enhanced_k_means": enhanced_k_means
+        }
+
+        # Enhanced K-Means kwargs
+        enhanced_kwargs = dict(
+            w_degree=0.2,
+            w_betweenness=0.4,
+            w_closeness=0.4
+        )
+
+        run_latency_experiment_compare(
+            gml_file,
+            clustering_fns,
+            propagation_speed_km_per_ms,
+            kmax,
+            seed,
+            enhanced_kwargs,
+            k_value
+        )
+
+        run_enhanced_kmeans_experiment(
+            gml_file,
+            clustering_fns,
+            propagation_speed_km_per_ms,
+            kmax,
+            enhanced_algorithm_runs,
+            seed,
+            enhanced_kwargs
+        )
+
+        save_results_to_json(
+            gml_file,
+            clustering_fns,
+            propagation_speed_km_per_ms,
+            kmax,
+            enhanced_algorithm_runs,
+            seed,
+            enhanced_kwargs
+        )
+
+
+
