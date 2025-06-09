@@ -54,7 +54,12 @@ def _eligible_center_nodes(degrees, avg_degree):
     Returns:
         eligible_nodes (list): List of eligible node ids.
     """
-    eligible_nodes = [n for n, d in degrees.items() if d >= avg_degree]
+
+    def _satisfies_degree(node):
+        """Check if the node has at least the average degree."""
+        return degrees[node] >= avg_degree
+
+    eligible_nodes = [n for n, d in degrees.items() if _satisfies_degree(n)]
     if not eligible_nodes:
         raise ValueError("No eligible nodes found with degree >= average degree.")
     return eligible_nodes

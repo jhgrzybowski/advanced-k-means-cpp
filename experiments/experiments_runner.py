@@ -71,7 +71,7 @@ def run_latency_experiment_compare(
                     print(f"  Controller {ctrl} ({ctrl_label}): {members_labels}")
 
             # Compute latencies using helper
-            avg_delay_list, max_delay_list = compute_latencies_for_experiment(G, controllers, clusters)
+            avg_delay_list, max_delay_list = compute_latencies_for_experiment(G, k, controllers, clusters)
             avg_latency = avg_delay_list[0] if isinstance(avg_delay_list, list) else avg_delay_list
             max_latency = max_delay_list[0] if isinstance(max_delay_list, list) else max_delay_list
 
@@ -149,7 +149,7 @@ def run_enhanced_kmeans_experiment(
         # --- Advanced K-Means latency measurements ---
         controllers, clusters = clustering_fns["advanced_k_means"](G, k)
 
-        advanced_avg, advanced_max = compute_latencies_for_experiment(G, controllers, clusters)
+        advanced_avg, advanced_max = compute_latencies_for_experiment(G, k, controllers, clusters)
 
         # Experiments result lists for Advanced K-Means
         avg_delays_advanced.append(np.mean(advanced_avg))
@@ -162,7 +162,7 @@ def run_enhanced_kmeans_experiment(
         for run in range(enhanced_runs):
             controllers_enhanced, clusters_enhanced = clustering_fns["enhanced_k_means"](G, k, rng, **kwargs)
 
-            run_enhanced_avg, run_enhanced_max = compute_latencies_for_experiment(G, controllers_enhanced, clusters_enhanced)
+            run_enhanced_avg, run_enhanced_max = compute_latencies_for_experiment(G, k, controllers_enhanced, clusters_enhanced)
 
             enhanced_avg.append(run_enhanced_avg)
             enhanced_max.append(run_enhanced_max)

@@ -1,6 +1,6 @@
 import networkx as nx
 
-def compute_latencies_for_experiment(G, controllers, clusters):
+def compute_latencies_for_experiment(G, k, controllers, clusters):
     """
     Computes average and maximum propagation latencies for controller placement experiments.
 
@@ -28,7 +28,7 @@ def compute_latencies_for_experiment(G, controllers, clusters):
                 delay = nx.shortest_path_length(G, source=node, target=ctrl, weight="delay_ms")
                 delays.append(delay)
     total_delay = sum(delays)
-    num_nodes = G.number_of_nodes()
+    num_nodes = G.number_of_nodes() - k
     avg_latency = total_delay / num_nodes if num_nodes else 0.0
     max_latency = max(delays) if delays else 0.0
 
