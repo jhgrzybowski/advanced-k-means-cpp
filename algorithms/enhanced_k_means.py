@@ -1,7 +1,17 @@
-import networkx as nx
-from utils.data_utils import *
-from algorithms.helpers import _compute_path_lengths, _prepare_graph_features, _prepare_weight_normalization
+# === Enhanced K-Means++ ===
+# Main Algorithm 1 (Weighted Initial Center) and Algorithm 2 (Network Partitioning with stochastic cluster selection)
 
+import networkx as nx
+
+from algorithms.helpers import (
+    normalize_metrics,
+    satisfies_degree,
+    select_stochastic_next_center,
+    assign_nodes_to_centers,
+    update_centers,
+    compute_path_lengths,
+    compute_node_average_degree
+)
 
 def best_weighted_initial_center(
     G,
@@ -12,116 +22,98 @@ def best_weighted_initial_center(
     w_closeness,
 ):
     """
-    Selects the first initial cluster center for the Enhanced K-Means algorithm using weighted sum of:
-    highest degree, betweenness, and closeness centrality. All metrics are normalized before weighting.
-    Only nodes with degree >= average degree are considered.
+    Algorithm 1: Selects the initial cluster center for Enhanced K-Means using a weighted sum
+    of normalized degree, betweenness, and closeness centrality. Only nodes with degree
+    greater than or equal to the rounded average degree are considered as eligible candidates.
+
+    In case of ties (same score), the node with the smallest sum of shortest path distances
+    to all other nodes is chosen.
 
     Args:
         G (nx.Graph): The input undirected graph with delay-weighted edges.
-        betweenness (dict): Betweenness centrality {node: value}.
-        closeness (dict): Closeness centrality {node: value}.
-        w_degree (float): Weight for degree centrality.
-        w_betweenness (float): Weight for betweenness centrality.
-        w_closeness (float): Weight for closeness centrality.
+        betweenness (dict): Mapping {node: betweenness centrality (float)}.
+        closeness (dict): Mapping {node: closeness centrality (float)}.
+        w_degree (float): Weight for degree centrality (normalized).
+        w_betweenness (float): Weight for betweenness centrality (normalized).
+        w_closeness (float): Weight for closeness centrality (normalized).
 
     Returns:
-        best_node (int): Node id of the selected best center.
+        int: Node ID of the selected best center.
     """
+    nodes = list(G.nodes())
+    degrees = dict(G.degree())
+    avg_degree = compute_node_average_degree(G)
 
-    # Select nodes that can be candidates for initial center
-    eligible_nodes, degrees = _prepare_graph_features(G)
+    path_lengths = compute_path_lengths(G)
 
-    # Compute all shortest paths in the network
-    path_lengths = _compute_path_lengths(G)
-
-    best_node = None
-    best_score = -float('inf')
-    best_sum = float('inf')
-
-    # For each egligible node calculate the score for being the best candidate for initial center
-    for n in eligible_nodes:
-
-        d_norm, b_norm, c_norm = _prepare_weight_normalization(G,n,betweenness, closeness)
-
-        # Score is calculated based on weighted metrics
+    candidates = [n for n in nodes if satisfies_degree(n, degrees, avg_degree)]
+    max_score = -float('inf')
+    min_sum = float('inf')
+    best = None
+    for n in candidates:
+        d_norm, b_norm, c_norm = normalize_metrics(n, degrees, betweenness, closeness)
         score = w_degree * d_norm + w_betweenness * b_norm + w_closeness * c_norm
-        sum_dist = sum(path_lengths[n].values())
-        if (score > best_score) or (score == best_score and sum_dist < best_sum):
-            best_node = n
-            best_score = score
-            best_sum = sum_dist
-    return best_node
+        sum_dist = sum(path_lengths[n][m] for m in nodes)
+        if (score > max_score) or (score == max_score and sum_dist < min_sum):
+            best = n
+            max_score = score
+            min_sum = sum_dist
+    return best
 
 def enhanced_k_means(G, k, rng, w_degree, w_betweenness, w_closeness):
     """
-    Enhanced K-Means clustering for SDN controller placement with degree, betweenness, and closeness weight system.
-    It partitions the network into k clusters and selects k controller nodes to minimize average propagation delay.
-    The initial controller is selected using select_first_initial_center(), but with full centrality weighting.
+    Algorithm 2: Enhanced K-Means clustering for SDN controller placement.
+    Partitions the graph into k clusters by selecting controller nodes (centers)
+    in a way that aims to minimize the average propagation delay (latency)
+    between controllers and switches.
+
+    After each new center is added (using a stochastic k-means++ style rule),
+    a local k-means cycle (assignment and centroid update) is performed for the current
+    set of centers, until convergence.
 
     Args:
-        G (nx.Graph): The input undirected graph with delay-weighted edges.
-        k (int): Number of controllers/clusters.
-        rng (random.Random(seed)): Random number generator.
-        w_degree (float): Weight for degree centrality (default: 1.0).
-        w_betweenness (float): Weight for betweenness centrality (default: 1.0).
-        w_closeness (float): Weight for closeness centrality (default: 1.0).
+        G (nx.Graph): The input undirected graph with delay-weighted edges (attribute: "delay_ms").
+        k (int): Desired number of clusters/controllers.
+        rng (random.Random): Random number generator for stochastic sampling.
+        w_degree (float): Weight for degree centrality in initial center selection.
+        w_betweenness (float): Weight for betweenness centrality in initial center selection.
+        w_closeness (float): Weight for closeness centrality in initial center selection.
 
     Returns:
-        controllers (list): List of selected controller node ids.
-        clusters (dict): Mapping from controller node id to set of assigned node ids.
+        tuple:
+            - controllers (list): List of selected controller node IDs (cluster centers).
+            - clusters (dict): Mapping from controller node ID to set of assigned node IDs in its cluster.
     """
+
     nodes = list(G.nodes())
-    path_lengths = _compute_path_lengths(G)
+    degrees = dict(G.degree())
+    avg_degree = compute_node_average_degree(G)
 
-
+    path_lengths = compute_path_lengths(G)
     betweenness = nx.betweenness_centrality(G, normalized=True, weight='delay_ms')
     closeness = nx.closeness_centrality(G, distance='delay_ms')
 
-    # Step 1: Select the first center using weighted centrality
+    # Step 1: Select the first center using weighted centrality (Algorithm 1)
     centers = [best_weighted_initial_center(
         G, betweenness, closeness,
-        w_degree,
-        w_betweenness,
-        w_closeness
+        w_degree, w_betweenness, w_closeness
     )]
 
-    # Step 2: Select next centers based on k-means++
-    while len(centers) < k:
-        # For each node, compute squared min distance to any center
-        dists = []
-        for node in nodes:
-            if node in centers:
-                dists.append(0)
-            else:
-                min_dist = min(path_lengths[node][c] for c in centers)
-                dists.append(min_dist ** 2)
-        total = sum(dists)
-        probs = [d / total if total > 0 else 0 for d in dists]
-        # Randomly pick the next center
-        next_center = rng.choices(nodes, weights=probs, k=1)[0]
-        if next_center not in centers:
-            centers.append(next_center)
-
-    # Step 3: Assign nodes to the closest center
-    changed = True
-    while changed:
-        clusters = {c: set() for c in centers}
-        for node in nodes:
-            closest_center = min(centers, key=lambda c: path_lengths[node][c])
-            clusters[closest_center].add(node)
-            # Step 4: Update centers in each cluster to node with minimal sum delay in cluster
-            new_centers = []
-            for c, members in clusters.items():
-                min_sum = float('inf')
-                best_node = None
-                for n in members:
-                    s = sum(path_lengths[n][m] for m in members)
-                    if s < min_sum:
-                        min_sum = s
-                        best_node = n
-                new_centers.append(best_node)
-        # Step 5: Check for convergence
-        if set(new_centers) == set(centers):
+    j = 2
+    while j <= k:
+        # Step 2: Select next center using k-means++ stochastic rule with degree constraint
+        next_center = select_stochastic_next_center(G, centers, rng)
+        if next_center is None:
             break
-        centers = new_centers
+        centers.append(next_center)
+        # Step 3: Local K-Means cycle (assignment + center update) until convergence
+        while True:
+            clusters = assign_nodes_to_centers(centers, nodes, path_lengths)
+            new_centers = update_centers(clusters, degrees, avg_degree, path_lengths)
+            if set(new_centers) == set(centers):
+                break
+            centers = new_centers
+        j += 1
+
+    clusters = assign_nodes_to_centers(centers, nodes, path_lengths)
     return centers, clusters

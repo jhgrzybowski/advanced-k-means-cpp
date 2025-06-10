@@ -50,7 +50,7 @@ def save_results_to_json(
             clusters_serializable = {str(int(c)): list(map(int, members)) for c, members in clusters.items()}
             clusters_per_run.append(clusters_serializable)
 
-            avg_delay, _ = compute_latencies_for_experiment(G, controllers, clusters)
+            avg_delay, _ = compute_latencies_for_experiment(G, k, controllers, clusters)
             avg_delays.append(float(avg_delay[0]))  # avg_delay is [value], we want value
 
         # Statistics
@@ -88,7 +88,7 @@ def save_results_to_json(
         # --- Advanced K-Means latency measurements ---
         controllers, clusters = clustering_fns["advanced_k_means"](G, k)
 
-        advanced_avg, advanced_max = compute_latencies_for_experiment(G, controllers, clusters)
+        advanced_avg, advanced_max = compute_latencies_for_experiment(G, k, controllers, clusters)
 
         # Experiments result lists for Advanced K-Means
         avg_delays_advanced.append(np.mean(advanced_avg))
