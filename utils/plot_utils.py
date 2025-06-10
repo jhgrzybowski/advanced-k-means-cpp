@@ -4,6 +4,12 @@ from matplotlib.ticker import MultipleLocator
 
 plt.rcParams['font.family'] = 'Arial'
 
+max_ylim = 10
+ytick_major = 0.5
+
+max_ylim2 = 20
+ytick_major2 = 1
+
 # --- Helper function for all plots ---
 def _make_plot(
     x,
@@ -68,7 +74,7 @@ def plot_latency_comparison(
     clustering_fns,
     experiment_name,
     topology_name,
-    output_dir="plots"
+    output_dir
 ):
     """
     Plot mean avg/max latency for advanced & enhanced k-means, using unified styling.
@@ -100,8 +106,8 @@ def plot_latency_comparison(
         ylabel='Average Response Time [ms]',
         title=f'Average Latency – {experiment_name} – Topology: {topology_name}',
         legend_loc="best",
-        ylim=(0, 8),
-        ytick_major=0.5,
+        ylim=(0, max_ylim),
+        ytick_major=ytick_major,
         fname=f"{output_dir}/1_{info_str} (150dpi).png"
     )
 
@@ -116,8 +122,8 @@ def plot_latency_comparison(
         ylabel='Maximum Response Time [ms]',
         title=f'Maximum Latency – {experiment_name} – Topology: {topology_name}',
         legend_loc="best",
-        ylim=(0, 16),
-        ytick_major=0.5,
+        ylim=(0, max_ylim2),
+        ytick_major=ytick_major2,
         fname=f"{output_dir}/2_{info_str} (150dpi).png"
     )
 
@@ -132,7 +138,7 @@ def plot_enhanced_kmeans_experiment(
     std_max_delays_enhanced,
     experiment_name,
     topology_name,
-    output_dir="plots"
+    output_dir
 ):
     """
     Plot average (with std) and maximum (with std) delay for enhanced k-means++ versus advanced k-means.
@@ -155,8 +161,8 @@ def plot_enhanced_kmeans_experiment(
         ylabel="Average Response Time [ms]",
         title=f"Average Propagation Delay – {experiment_name} – Topology: {topology_name}",
         legend_loc="best",
-        ylim=(0, 8),
-        ytick_major=0.5,
+        ylim=(0, max_ylim),
+        ytick_major=ytick_major,
         fname=f"{output_dir}/3_{info_str} (150dpi).png"
     )
 
@@ -175,7 +181,7 @@ def plot_enhanced_kmeans_experiment(
         ylabel="Maximum Response Time [ms]",
         title=f"Maximum Propagation Delay – {experiment_name} – Topology: {topology_name}",
         legend_loc="best",
-        ylim=(0, 16),
-        ytick_major=0.5,
+        ylim=(0, max_ylim2),
+        ytick_major=ytick_major2,
         fname=f"{output_dir}/4_{info_str} (150dpi).png"
     )

@@ -5,6 +5,8 @@ import numpy as np
 from utils.data_utils import load_gml_to_delay_graph
 from utils.experiment_utils import compute_latencies_for_experiment
 
+results_dir = "results/os3e"
+
 def save_results_to_json(
     gml_file,
     clustering_fns,
@@ -27,7 +29,7 @@ def save_results_to_json(
     Saves:
         Results to 'results/' directory in enhanced_kmeans_results.json format.
     """
-    os.makedirs("results", exist_ok=True)
+    os.makedirs(results_dir, exist_ok=True)
     G = load_gml_to_delay_graph(gml_file, propagation_speed_km_per_ms)
     rng = random.Random(seed)
     kwargs = enhanced_k_means_kwargs or {}
@@ -70,7 +72,7 @@ def save_results_to_json(
             "clusters": clusters_per_run,
         })
 
-    with open("results/enhanced_k-means_results.json", "w") as f:
+    with open(f"{results_dir}/enhanced_k-means_results.json", "w") as f:
         json.dump(enhanced_results, f, indent=2)
     print("Results successfully saved to results/enhanced_k-means_results.json")
 
@@ -101,6 +103,6 @@ def save_results_to_json(
             "mean": avg_delay
         })
 
-    with open("results/advanced_k-means_results.json", "w") as f:
+    with open(f"{results_dir}/advanced_k-means_results.json", "w") as f:
         json.dump(advanced_results, f, indent=2)
     print("Results successfully saved to results/advanced_k-means_results.json")

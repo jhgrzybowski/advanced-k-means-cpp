@@ -1,4 +1,4 @@
-from algorithms import enhanced_k_means
+from utils.load_utils import run_and_save_controller_loads
 from utils.results_utils import save_results_to_json
 from experiments.experiments_runner import run_enhanced_kmeans_experiment
 from experiments.experiments_runner import run_latency_experiment_compare
@@ -67,6 +67,15 @@ if __name__ == "__main__":
             propagation_speed_km_per_ms,
             kmax,
             enhanced_algorithm_runs,
+            seed,
+            enhanced_kwargs
+        )
+
+        run_and_save_controller_loads(
+            gml_file,
+            propagation_speed_km_per_ms,
+            kmax,
+            clustering_fns,
             seed,
             enhanced_kwargs
         )
