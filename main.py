@@ -3,6 +3,7 @@ from utils.results_utils import save_results_to_json
 from experiments.experiments_runner import run_enhanced_kmeans_experiment
 from experiments.experiments_runner import run_latency_experiment_compare
 
+from CONST import *
 
 if __name__ == "__main__":
     # List of available GML topology files in the project
@@ -10,7 +11,15 @@ if __name__ == "__main__":
         "pionier": "topologies/PionierL3_topology.gml",
         "atmnet": "topologies/Atmnet_topology.gml",
         "os3e": "topologies/Internet2_OS3E_topology.gml",
-        "geant2012": "topologies/Geant2012_topology.gml"
+        "geant": "topologies/Geant2012_topology.gml",
+        "abvt": "topologies/Abvt.gml",
+        "gts": "topologies/GtsSlovakia.gml",
+        "iij": "topologies/Iij.gml",
+        "hurricane": "topologies/HurricaneElectric.gml",
+        "jpn": "topologies/WideJpn.gml",
+        "bell": "topologies/Bellsouth.gml",
+        "belnet": "topologies/Belnet2003.gml",
+        "cesnet": "topologies/Cesnet1999.gml",
     }
 
     # run_latency_experiment(gml_file=topology_files["os3e"], clustering_fn=advanced_k_means,
@@ -22,12 +31,11 @@ if __name__ == "__main__":
     if __name__ == "__main__":
 
         # Experiments paremeters
-        gml_file = topology_files['os3e']
+        gml_file = topology_files[f'{topo_dir}']
         propagation_speed_km_per_ms = 204
-        kmax = 10
         seed = 42
         enhanced_algorithm_runs = 10
-        k_value = range(3,7)
+        k_value = range(1,kmax+1)
 
         clustering_fns = {
             "advanced_k_means": advanced_k_means,

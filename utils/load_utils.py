@@ -3,6 +3,10 @@ import json
 import random
 from utils.data_utils import load_gml_to_delay_graph
 
+from CONST import *
+
+dir_path=f"load/{topo_dir}"
+
 def compute_controller_load(clusters):
     """
     Computes the load for each controller as the number of switches assigned to it.
@@ -32,7 +36,7 @@ def run_and_save_controller_loads(
     enhanced_k_means_kwargs=None
 ):
     """
-    For each k in 1..k_max, runs Advanced K-Means and Enhanced K-Means (single run each),
+    For each k in 1...k_max, runs Advanced K-Means and Enhanced K-Means (single run each),
     computes controller loads, and saves results as JSON in "load/" directory.
     All k results are written as a list to 'advanced_k-means_load.json' and 'enhanced_k-means_load.json'.
 
@@ -50,7 +54,7 @@ def run_and_save_controller_loads(
             'enhanced_k_means': [result for each k]
         }
     """
-    os.makedirs("load", exist_ok=True)
+    os.makedirs(dir_path, exist_ok=True)
     from copy import deepcopy
     G_orig = load_gml_to_delay_graph(gml_file, propagation_speed_km_per_ms)
     rng = random.Random(seed)
@@ -95,18 +99,18 @@ def run_and_save_controller_loads(
         txt_content_enh += f"K = {k}: Max load = {enh_load['max_controller_load']}\n"
 
     # Save all advanced results in one file
-    with open("load/advanced_k-means_load.json", "w") as f:
+    with open(f"{dir_path}/advanced_k-means_load.json", "w") as f:
         json.dump(advanced_results, f, indent=2)
     print("Advanced K-Means loads saved to load/advanced_k-means_load.json")
 
     # Save all enhanced results in one file
-    with open("load/enhanced_k-means_load.json", "w") as f:
+    with open(f"{dir_path}/enhanced_k-means_load.json", "w") as f:
         json.dump(enhanced_results, f, indent=2)
     print("Enhanced K-Means loads saved to load/enhanced_k-means_load.json")
 
-    with open("load/advanced_max_load.txt", "w") as f:
+    with open(f"{dir_path}/advanced_max_load.txt", "w") as f:
         f.write(txt_content_adv)
-    with open("load/enhanced_max_load.txt", "w") as f:
+    with open(f"{dir_path}/enhanced_max_load.txt", "w") as f:
         f.write(txt_content_enh)
 
     return {

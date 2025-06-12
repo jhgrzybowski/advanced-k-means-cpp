@@ -75,19 +75,21 @@ def advanced_k_means(G, k):
 
     j = 2
     while j <= k:
-        # Step 2: Select next center as the farthest eligible node from current centers
-        new_center = select_farthest_node(
+        next_center = select_farthest_node(
             nodes, centers, degrees, avg_degree, path_lengths
         )
-        centers.append(new_center)
-        # Step 3: Local K-Means cycle (assignment + center update) until convergence
-        while True:
-            clusters = assign_nodes_to_centers(centers, nodes, path_lengths)
-            new_centers = update_centers(clusters, degrees, avg_degree, path_lengths)
-            if set(new_centers) == set(centers):
-                break
-            centers = new_centers
-        j += 1
+        if next_center is None:
+            print(f"Warning: No eligible center found for k={j}. Stopping at {len(centers)} centers.")
+            break
+        else:
+            centers.append(next_center)
+            while True:
+                clusters = assign_nodes_to_centers(centers, nodes, path_lengths)
+                new_centers = update_centers(clusters, degrees, avg_degree, path_lengths)
+                if set(new_centers) == set(centers):
+                    break
+                centers = new_centers
+            j += 1
 
     clusters = assign_nodes_to_centers(centers, nodes, path_lengths)
     return centers, clusters

@@ -4,11 +4,9 @@ from matplotlib.ticker import MultipleLocator
 
 plt.rcParams['font.family'] = 'Arial'
 
-max_ylim = 10
-ytick_major = 0.5
 
-max_ylim2 = 20
-ytick_major2 = 1
+from CONST import *
+
 
 # --- Helper function for all plots ---
 def _make_plot(

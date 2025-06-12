@@ -155,6 +155,9 @@ def update_centers(clusters, degrees, avg_degree, path_lengths):
     """
     new_centers = []
     for members in clusters.values():
+        if not members:
+            print("[WARN] Empty cluster detected during update_centers, skipping.")
+            continue
         eligible = [n for n in members if satisfies_degree(n, degrees, avg_degree)]
         if not eligible:
             eligible = list(members)
@@ -167,3 +170,36 @@ def update_centers(clusters, degrees, avg_degree, path_lengths):
                 best = n
         new_centers.append(best)
     return new_centers
+
+def fix_singleton_clusters(centers, clusters, nodes, path_lengths):
+    """
+    Ensures that no cluster consists of only a single node (the controller itself).
+    If such clusters are found, removes their centers and reassigns the node to the nearest remaining center.
+
+    Args:
+        centers (list): List of center node IDs.
+        clusters (dict): Mapping {center_node: set of assigned node IDs}.
+        nodes (list): List of all node IDs in the graph.
+        path_lengths (dict): Nested dict {node: {target: shortest_path_length}}.
+
+    Returns:
+        (new_centers, new_clusters): Tuple with updated lists/dicts after removing singletons.
+    """
+    # Identify centers that are singletons (cluster only has the center node)
+    singleton_centers = [c for c, members in clusters.items() if len(members) == 1 and c in members]
+    if not singleton_centers:
+        return centers, clusters
+
+    # Remove singleton centers from centers list
+    new_centers = [c for c in centers if c not in singleton_centers]
+    # Reassign singleton nodes to the closest new center
+    for single in singleton_centers:
+        candidates = [c for c in new_centers if c != single]
+        if not candidates:
+            continue  # nothing to do, all are singleton
+        # Assign the singleton node to the nearest center
+        closest = min(candidates, key=lambda c: path_lengths[single][c])
+        clusters[closest].add(single)
+    # Remove singleton centers' cluster
+    new_clusters = {c: members for c, members in clusters.items() if c not in singleton_centers}
+    return new_centers, new_clusters

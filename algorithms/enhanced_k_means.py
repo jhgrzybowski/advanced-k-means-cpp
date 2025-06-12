@@ -10,7 +10,8 @@ from algorithms.helpers import (
     assign_nodes_to_centers,
     update_centers,
     compute_path_lengths,
-    compute_node_average_degree
+    compute_node_average_degree,
+    fix_singleton_clusters
 )
 
 def best_weighted_initial_center(
@@ -104,6 +105,7 @@ def enhanced_k_means(G, k, rng, w_degree, w_betweenness, w_closeness):
         # Step 2: Select next center using k-means++ stochastic rule with degree constraint
         next_center = select_stochastic_next_center(G, centers, rng)
         if next_center is None:
+            print(f"Warning: No eligible center found for k={j}. Stopping at {len(centers)} centers.")
             break
         centers.append(next_center)
         # Step 3: Local K-Means cycle (assignment + center update) until convergence
@@ -116,4 +118,5 @@ def enhanced_k_means(G, k, rng, w_degree, w_betweenness, w_closeness):
         j += 1
 
     clusters = assign_nodes_to_centers(centers, nodes, path_lengths)
+    centers, clusters = fix_singleton_clusters(centers, clusters, nodes, path_lengths)
     return centers, clusters

@@ -8,8 +8,10 @@ from utils.data_utils import load_gml_to_delay_graph
 from utils.experiment_utils import compute_latencies_for_experiment
 from utils.plot_utils import plot_latency_comparison, plot_enhanced_kmeans_experiment
 
-topology_name="Atmnet"
-plot_dir = "plots/atmnet"
+
+from CONST import *
+
+dir_path = f"plots/{topo_dir}"
 
 def run_latency_experiment_compare(
     gml_file,
@@ -34,7 +36,7 @@ def run_latency_experiment_compare(
         Comparison plots for average and max latency.
     """
 
-    os.makedirs(plot_dir, exist_ok=True)
+    os.makedirs(dir_path, exist_ok=True)
 
     G = load_gml_to_delay_graph(gml_file, propagation_speed_km_per_ms=propagation_speed_km_per_ms)
     k_values = list(range(1, kmax + 1))
@@ -95,7 +97,7 @@ def run_latency_experiment_compare(
         clustering_fns,
         experiment_name="Advanced K-Means vs Enhanced K-Means++",
         topology_name=topology_name,
-        output_dir=plot_dir
+        output_dir=dir_path
     )
 
 def run_enhanced_kmeans_experiment(
@@ -125,7 +127,7 @@ def run_enhanced_kmeans_experiment(
         Plots to 'plots/' directory.
     """
     import os
-    os.makedirs(plot_dir, exist_ok=True)
+    os.makedirs(dir_path, exist_ok=True)
 
     # Load topology
     G = load_gml_to_delay_graph(gml_file, propagation_speed_km_per_ms)
@@ -187,7 +189,7 @@ def run_enhanced_kmeans_experiment(
         std_max_delays_enhanced,
         experiment_name="Advanced K-Means vs Enhanced K-Means++ (with std dev)",
         topology_name=topology_name,
-        output_dir=plot_dir
+        output_dir=dir_path
     )
 
 
